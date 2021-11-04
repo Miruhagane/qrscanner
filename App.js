@@ -1,17 +1,20 @@
 
-import React from "react";
-import {useState} from 'react';
-import QRCodeScanner from 'react-native-qrcode-scanner'
-import { Text,Image,ActivityIndicator, ImageBackground,Linking,StyleSheet,Separator,
-   TouchableOpacity, Alert, TouchableHighlight , View, Modal, Button ,Pressable, ScrollView} from 'react-native';
+import * as React from 'react';
+ import {useState} from 'react';
+ import QRCodeScanner from 'react-native-qrcode-scanner'
+ import { Text,Image,ActivityIndicator, ImageBackground,Linking,StyleSheet,Separator,
+   TouchableOpacity, Alert, TouchableHighlight , View, Modal, Button,TextInput ,Pressable, ScrollView} from 'react-native';
    import axios from 'axios';
-
-import AwesomeAlert from 'react-native-awesome-alerts';
-
-import { Colors,  DebugInstructions,  Header,  LearnMoreLinks,  ReloadInstructions,} from 'react-native/Libraries/NewAppScreen';
-
-
-function App() {
+   import AwesomeAlert from 'react-native-awesome-alerts';
+ import { Colors,  DebugInstructions,  Header,  LearnMoreLinks,  ReloadInstructions,} from 'react-native/Libraries/NewAppScreen';
+ import { NavigationContainer ,DefaultTheme} from '@react-navigation/native';
+ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+ import QR from './Qr'
+ import BuscarPorNombre from './BuscarPorNombre'
+ import Lista from './Lista'
+ import { enableScreens } from 'react-native-screens';
+ import QrVip from './QrVip';
+ function App() {
 
   const [alert, setalert] = useState(false);
   const [alert1, setalert2] = useState(false);
@@ -42,19 +45,21 @@ function App() {
      setalert2(false)
     };
   
-    
+    const [text, setText] = useState("");
 
-  const alerta = e => {
-   
+
+  const alerta = () => {
+    
+        console.info("peticion yes: "+ text);
     //console.info( "QR leido: "+e.data)
     async function getInfo() {
-      const response = await fetch('http://syscontrol.azurewebsites.net/FLH/asistencia?QR=' + e.data + '');
+      const response = await fetch('https://syscontrol.azurewebsites.net/FLH/buscarPorNomTel?nombre=' + text + '');
       const invitado = await response.json();
       return invitado;
     }
     
     getInfo().then(invitado => {
-        // console.info("datos del invitado"+invitado.nombreInvitado); 
+       // console.info("datos del invitado"+invitado.nombreInvitado); 
          let Bolvalid = parseInt(invitado.Bol_Validado)
         // console.log("bolllll :"+Bolvalid) 
 
@@ -104,7 +109,8 @@ function App() {
  // ENVIA QUE ENTRADA SE ESTA CONFRIMANDO 
   const valid = (qr,dia) =>{
    
-        console.info("peticion yes: "+ qr,dia);
+
+        console.info("peticion yes: "+ text);
         async function getconfirm() {
           var url ='http://syscontrol.azurewebsites.net/FLH/confirmarEntrada?QR='+qr+'&dia='+dia+'';
          // console.info("mi url : "+url)
@@ -127,148 +133,104 @@ const onclose=()=>{
   setcar1(false)
   setcar2(false)
   setcar3(false)
-
+  setText("")
 }
+const Tab = createBottomTabNavigator();
 
-  return (
-    <>
-     <QRCodeScanner
-        containerStyle={{backgroundColor: '#CB910C'}}
-        onRead={alerta}
-        reactivate={true}
-        reactivateTimeout={5000}
-        permissionDialogMessage="¿Puedo usar tu camara?"
-        showMarker={true}
-        markerStyle={{borderColor: 'green', borderRadius: 10}}   
-        topContent={          
-            <Text style={styles.tituloqr}>FBX40 </Text>
-        }    
-        bottomContent={
-          <TouchableOpacity>
-            <Text style={styles.qrfooter}>
-              Buscando...
-            </Text>
-            <ActivityIndicator size="large"  color="#00ff00" />
-          </TouchableOpacity>
-        }       
-        >          
-        </QRCodeScanner>
-       
-    <View>     
-      <AwesomeAlert 
-        show={alert}
-        showProgress={true}
-        title="INVITADO ENCOTRADO"
-        message={json.nombreInvitado}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={false}
-        showCancelButton={false}
-        showConfirmButton={true}
-        confirmText="VERIFICAR ENTRADA"
-        confirmButtonColor="#DD6B55"
-        onConfirmPressed={() => {
-          hideAlert();
-          setModalVisible(true);
+
+   return (
+    
+    <NavigationContainer>
+    <Tab.Navigator
+    tabBarOptions={{
+      showLabel:false,
+      style:{
+        position: 'absolute',
+        bottom:8,
+        left:5,
+        right:5,
+        elevation:0,
+        borderRadius:15,
+        height: 90,
+        backgroundColor:'#ffff',
+        ...styles.shadow
+
+      }
+    }}
+    >
+      <Tab.Screen name="Home" component={QR} 
+        options={{
+          tabBarIcon:({focused})=>(
+            <View style={{alignItems:'center',justifyContent:'center',top:10}}>
+            <Image
+              source={require('./assets/qrcode.png')}
+              resizeMode="contain"
+              style={{
+                width: 30,
+                height: 30,
+                tintColor:focused ? '#e32f45':'#748c94',
+              }}
+            />
+              <Text>QR</Text>
+            </View>
+          ),
         }}
       />
-     <AwesomeAlert  
-        show={alert1}
-        showProgress={true}
-        title="CONFIRMAR ENTRADA"
-        message={eventvalida}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={false}
-        showCancelButton={true}
-        showConfirmButton={true}
-        confirmText="VALIDAR"
-        cancelText="CANCELAR"
-        confirmButtonColor="green"
-        cancelButtonColor="red"
-        onConfirmPressed={() => {       
-          valid(qrvalid,diavalid);
-        }}
-        onCancelPressed={() => {
-        
-          hideAlert2();
-        }}
-      /> 
-      <Modal animationType="slide" transparent={false} visible={modalVisible}>
-     
-        <ScrollView>
-          <Text style={styles.titulo}>Entrada de evento </Text>          
-          <TouchableOpacity style={styles.viewcard1}  onPress={() => { onPress2(json.Txt_QR,1,json.evento1) }} disabled={car1}  >          
-                <View style={styles.viewcardcontent}>  
-                 {json.evento1==null ? <Text style={styles.usado}>SIN PASE {"\n"}DE {"\n"}ENTRADA</Text>: json.Bol_Validado == 1 || json.Bol_Validado == 2 || json.Bol_Validado == 3 ? <Text style={styles.usado}>ENTRADA {"\n"}USADA</Text>: <Text style={styles.tituloCard}></Text> }     
-               
-                {json.evento1==null || json.Bol_Validado == 1 || json.Bol_Validado == 2 || json.Bol_Validado == 3 ? null: <Text style={styles.tituloCard}>Invitado:</Text> }
-                {json.evento1==null || json.Bol_Validado == 1 || json.Bol_Validado == 2 || json.Bol_Validado == 3 ? null: <Text style={styles.texto}> {json.nombreInvitado}  </Text>  }               
-                {json.evento1==null || json.Bol_Validado == 1 || json.Bol_Validado == 2 || json.Bol_Validado == 3 ?  null: <Text style={styles.tituloCard}>Acompañante:</Text>   }               
-                {json.evento1==null || json.Bol_Validado == 1 || json.Bol_Validado == 2 || json.Bol_Validado == 3 ?  null: <Text style={styles.texto}>{json.NombreAcompanante} </Text>   }
-                <Text style={styles.texto}>{"\n"}25 de junio 2021</Text>                   
-                </View>
+      {/* <Tab.Screen name="QrVip" component={QrVip} 
+      
+      options={{
+        tabBarIcon:({focused})=>(
+          <View style={{alignItems:'center',justifyContent:'center',top:10}}>
+           <Image
+              source={require('./assets/search.png')}
+              resizeMode="contain"
+              style={{
+                width: 30,
+                height: 30,
+                tintColor:focused ? '#e32f45':'#748c94',
+              }}
+            />
+            <Text>QrVip</Text>
+          </View>
+        ),
+      }}
+      /> */}
+       {/* <Tab.Screen name="Lista" component={Lista} 
+      
+      options={{
+        tabBarIcon:({focused})=>(
+          <View style={{alignItems:'center',justifyContent:'center',top:10}}>
+            <Image
+              source={require('./assets/list.png')}
+              resizeMode="contain"
+              style={{
+                width: 30,
+                height: 30,
+                tintColor:focused ? '#e32f45':'#748c94',
+              }}
+            />
+            <Text>LISTA</Text>
+          </View>
+        ),
+      }}
+      /> */}
+    </Tab.Navigator>
+  </NavigationContainer>
+   );
 
-                <View style={styles.viewcardcontent2}> 
-                <Text style={styles.evento}>DINNER & DRINKS</Text>
-                <Image style={styles.Logo}
-              source={{
-                uri:('https://fbx40.azurewebsites.net/static/media/ftlogo.9e8078a5.png')
-              }}
-            />
-             </View> 
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.viewcard2}  onPress={() => { onPress2(json.Txt_QR,2,json.evento2) }} disabled={car2}  >          
-          <View style={styles.viewcardcontent}>  
-                 {json.evento2==null ? <Text style={styles.usado}>SIN PASE {"\n"}DE {"\n"}ENTRADA</Text>: json.Bol_Validado == 2 || json.Bol_Validado == 3 ? <Text style={styles.usado}>ENTRADA {"\n"}USADA</Text>: <Text style={styles.tituloCard}></Text> }     
-               
-                {json.evento2==null || json.Bol_Validado == 2 || json.Bol_Validado == 3 ? null: <Text style={styles.tituloCard}>Invitado:</Text> }
-                {json.evento2==null || json.Bol_Validado == 2 || json.Bol_Validado == 3 ? null: <Text style={styles.texto}> {json.nombreInvitado}  </Text>  }               
-                {json.evento2==null || json.Bol_Validado == 2 || json.Bol_Validado == 3 ?  null: <Text style={styles.tituloCard}>Acompañante:</Text>   }               
-                {json.evento2==null || json.Bol_Validado == 2 || json.Bol_Validado == 3 ?  null: <Text style={styles.texto}>{json.NombreAcompanante} </Text>   }
-                <Text style={styles.texto}>{"\n"}25 de junio 2021</Text>                   
-                </View>
-                <View style={styles.viewcardcontent2}> 
-                <Text style={styles.evento}>BRUNCH</Text>
-                <Image style={styles.Logo}
-              source={{
-                uri:('https://fbx40.azurewebsites.net/static/media/ftlogo.9e8078a5.png')
-              }}
-            />
-             </View> 
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.viewcard3} onPress={() => { onPress2(json.Txt_QR,3,json.evento3) }} disabled={car3} >          
-          <View style={styles.viewcardcontent}>  
-                 {json.evento3==null ? <Text style={styles.usado}>SIN PASE {"\n"}DE {"\n"}ENTRADA</Text>: json.Bol_Validado == 3 ? <Text style={styles.usado}>ENTRADA {"\n"}USADA</Text>: <Text style={styles.tituloCard}></Text> }     
-               
-                {json.evento3==null || json.Bol_Validado == 3 || json.Bol_Validado == 3 ? null: <Text style={styles.tituloCard}>Invitado:</Text> }
-                {json.evento3==null || json.Bol_Validado == 3 || json.Bol_Validado == 3 ? null: <Text style={styles.texto}> {json.nombreInvitado}  </Text>  }               
-                {json.evento3==null || json.Bol_Validado == 3 || json.Bol_Validado == 3 ?  null: <Text style={styles.tituloCard}>Acompañante:</Text>   }               
-                {json.evento3==null || json.Bol_Validado == 3 || json.Bol_Validado == 3 ?  null: <Text style={styles.texto}>{json.NombreAcompanante} </Text>   }
-                <Text style={styles.texto}>{"\n"}25 de junio 2021</Text>                   
-                </View>
-                <View style={styles.viewcardcontent2}> 
-                <Text style={styles.evento}>ZAMNA</Text>
-                <Image style={styles.Logo}
-              source={{
-                uri:('https://fbx40.azurewebsites.net/static/media/ftlogo.9e8078a5.png')
-              }}
-            />
-             </View> 
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.btn} onPress={() => onclose()} >
-          <Text style={styles.texto}>
-          ESCANEAR NUEVO INVITADO
-              </Text> 
-          </TouchableOpacity>
-        </ScrollView>
-      </Modal>
-    </View>
-    </>
-  );
-
- }
+  }
 
  const styles = StyleSheet.create({
+   shadow:{
+    shadowColor:'red',
+    shadowOffset:{
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity:0.1,
+    shadowRadius:1.5,
+    elevation:2
+   },
   centerText: {
     flex: 1,
     fontSize: 18,
@@ -394,7 +356,37 @@ paddingBottom:80
    fontSize:30,
    color:'white',
    paddingTop:50,
- }
+ },
+ btnsearch:{
+  justifyContent: 'center',
+  marginHorizontal: 50,
+  margin:25,
+  backgroundColor: '#0277bd',
+  shadowColor: '#a5e1ad',
+  shadowOffset: { width: 5, height: 6 },
+  shadowRadius: 4,
+  shadowOpacity: 0.26,
+  elevation: 8,
+  borderRadius:50,
+  width: '70%',
+  height: 50,
+  textAlign:'center',
+ },container: {
+  flex: 1,
+  justifyContent: "center",
+  paddingHorizontal: 10
+},
+inputsearch:{
+  justifyContent: "center",
+  textAlign:'center',
+  elevation: 2,
+  borderRadius:10,
+  shadowColor:  '#0662F8',
+  height:69,
+  color:'black',
+  fontSize:15,
+  alignContent:'center',
+}
 });
 
-export default App;
+ export default App;
